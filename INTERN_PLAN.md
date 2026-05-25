@@ -32,7 +32,7 @@ The API contract (`StorageSvc.h`) is **fixed and not to be changed**. The intern
 | Partition layout | Two-bank ping-pong | Atomic update; survives power loss; aligned to NOR sectors |
 | Storage volume budget (SS2000 target) | 64 KB total (2 × 32 KB banks) | Fits SS2000 4 MB minus code/resources/FOTA scratch |
 | Storage volume on BL808 (dev) | 256 KB (room for testing) | M1s flash is bigger; design still targets 64 KB footprint |
-| Code organisation | `services/storage/nv_kv.c` + `platform/hal/platform/hal_flash_*.c` | Keep the API at `services/storage/`, HAL under `platform/hal/` |
+| Code organisation | `services/storage/nv_kv.c` + `platform/hal/hal_flash.h` (interface) + `platform/drivers/<target>/flash.c` (driver) | HAL is the **abstract contract** (platform-blind); per-target drivers live under `platform/drivers/` and are selected at link time. Do **not** put platform code inside the HAL layer. |
 | Factory keys | Separate read-only region | IMEI / calibration / HW-rev — written once, never reformatted |
 
 ## 4. Layer Cake (what she builds, bottom-up)
@@ -45,11 +45,14 @@ The API contract (`StorageSvc.h`) is **fixed and not to be changed**. The intern
 │  nv_kv.c — raw KV/log store              │  ← Weeks 3–4 (host) / Week 6 (M1s)
 │  two-bank ping-pong, CRC, compaction     │
 ├──────────────────────────────────────────┤
-│  hal_flash.h — read / program / erase    │  ← Week 2 (interface)
-│  hal_flash_sdl.c (emulator on host file) │  ← Week 2
-│  hal_flash_bl808.c (real M1s SPI-NOR)    │  ← Week 5
+│  platform/hal/hal_flash.h                │  ← Week 2
+│  abstract interface: read/program/erase  │     (platform-blind contract)
 ├──────────────────────────────────────────┤
-│  BL808 SPI-NOR (M1s hardware)            │
+│  Driver — one of, selected at link time: │
+│   platform/drivers/sdl/flash.c           │  ← Week 2  (host-file emulator)
+│   platform/drivers/bl808/flash.c         │  ← Week 5  (real SPI-NOR via M1s SDK)
+├──────────────────────────────────────────┤
+│  BL808 SPI-NOR (M1s hardware) / host fs  │
 └──────────────────────────────────────────┘
 ```
 
@@ -95,16 +98,17 @@ The API contract (`StorageSvc.h`) is **fixed and not to be changed**. The intern
 **Goal**: Lock the two contracts that everything else depends on. **No code that matters yet — design first.**
 
 **Tasks**
-- [ ] Write `platform/hal/platform/hal_flash.h` with: `init`, `read`, `program`, `erase`, `sector_size`, `total_size`
-- [ ] Decide and document the BL808 SPI-NOR flash geometry (sector size, page program size, total size) — verify against M1s board datasheet, not assumed
-- [ ] Implement `hal_flash_sdl.c` — backs the API with a `flash_image.bin` file; **enforces NOR semantics** (1→0 writes only; erase resets sector to 0xFF)
+- [ ] Write the HAL **interface** at `platform/hal/hal_flash.h`: `init`, `read`, `program`, `erase`, `sector_size`, `total_size` — **no platform-specific code in this header**
+- [ ] Decide and document the BL808 SPI-NOR flash geometry (sector size, page program size, total size) — verify against M1s board datasheet, not assumed. Record in `docs/m1s_flash_map.md` (geometry only this week; partition map in Week 5)
+- [ ] Implement the SDL **driver** at `platform/drivers/sdl/flash.c` — backs the HAL with a `flash_image.bin` file; **enforces NOR semantics** (1→0 writes only; erase resets sector to 0xFF)
+- [ ] Wire CMake so the SDL target links `platform/drivers/sdl/flash.c` against the HAL header
 - [ ] Write a small unit test: write-read, erase-read, 1→0 violation expected to fail
 - [ ] Draft `docs/nv_kv_format.md` covering: bank header layout, entry layout `{key, format, len, payload, crc}`, atomic-update protocol, compaction trigger
 - [ ] **Mentor sign-off on `nv_kv_format.md` on paper before any nv_kv code is written**
 
 **Exit criteria (outcome)**
-- `hal_flash.h` committed and reviewed
-- `hal_flash_sdl.c` committed; unit test passes
+- `platform/hal/hal_flash.h` committed (interface only, no `#ifdef <target>`)
+- `platform/drivers/sdl/flash.c` committed; unit test passes against SDL target
 - `docs/nv_kv_format.md` committed and signed off by mentor
 
 **Reporting**: Friday demo — walk through the format spec; mentor approval logged in `STATUS/week2.md`.
@@ -161,16 +165,17 @@ The API contract (`StorageSvc.h`) is **fixed and not to be changed**. The intern
 
 **Tasks**
 - [ ] BL808 toolchain installed; flash a "blinky" from `external/M1s_BL808_example` to confirm dev board + flashing flow
-- [ ] Locate flash primitives in `external/M1s_BL808_SDK` (likely `bl_flash.h` or `hal_flash.c` within the SDK)
-- [ ] Decide and document the flash region for NV storage on M1s (`docs/m1s_flash_map.md`) — must not collide with code, bootloader, or BL808 SDK reserved regions
-- [ ] Implement `hal_flash_bl808.c` calling SDK primitives
-- [ ] Wire CMake to select SDL vs BL808 backend based on target
+- [ ] Locate flash primitives in `external/M1s_BL808_SDK` (likely `bl_flash.h` within the SDK)
+- [ ] Decide and document the flash partition map for NV storage on M1s — append to `docs/m1s_flash_map.md` from Week 2 — must not collide with code, bootloader, or BL808 SDK reserved regions
+- [ ] Implement the BL808 **driver** at `platform/drivers/bl808/flash.c` against the same `platform/hal/hal_flash.h` interface (create `platform/drivers/bl808/` if it does not exist; mirror the layout of `platform/drivers/sdl/`)
+- [ ] Wire CMake so the BL808 target links `platform/drivers/bl808/flash.c` (the HAL header is unchanged; only the driver swaps)
 - [ ] Run the Week 2 unit test on hardware; tee UART log to file
 - [ ] Validate erase / program / read across sector boundaries
 
 **Exit criteria (outcome)**
-- Week 2 unit test passes on M1s board
-- `docs/m1s_flash_map.md` committed showing partition layout on actual hardware
+- Week 2 unit test passes on M1s board (same test binary, only the linked driver differs)
+- `docs/m1s_flash_map.md` updated with the partition map on actual hardware
+- HAL header (`platform/hal/hal_flash.h`) is unchanged from Week 2 — the only new code is the BL808 driver. **If the HAL had to change for BL808, the abstraction was wrong; revisit Week 2.**
 
 **Reporting**: Friday demo — UART log of unit test on hardware. `STATUS/week5.md`.
 
