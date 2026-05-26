@@ -44,7 +44,7 @@ strict task-ownership model that you MUST follow.
 ## Exit criteria
 - On M1s: add a contact in Phonebook → power cycle → contact present
 - On M1s: change language in Settings → power cycle → language preserved
-- **SDL build still works** (no regression for app developers)
+- **SDL Docker build still works** (`./osmo-mmi-demo.sh build && ./osmo-mmi-demo.sh run` — no regression for app developers)
 
 ## Reporting (Friday)
 - Live demo: M1s side-by-side with SDL build. Add a contact on M1s, power-cycle, prove it persists. Show SDL build still works
@@ -55,4 +55,4 @@ strict task-ownership model that you MUST follow.
 - Watch out for the LVGL task calling synchronous storage — that can stall the UI for a flash erase (50–500 ms). If you see UI hangs, route through BgWorker (see `services/CLAUDE.md` "BgWorkerService — Key Behaviours")
 - **Do not change `StorageSvc.h`**. If you find yourself wanting to, stop and discuss
 - Keep changes to PhbService minimal — only the two stub functions should need updating
-- Test SDL regression EARLY in the week — don't discover on Friday that desktop devs can't build
+- Test the SDL Docker build (`./osmo-mmi-demo.sh build`) EARLY in the week — don't discover on Friday that desktop devs can't build

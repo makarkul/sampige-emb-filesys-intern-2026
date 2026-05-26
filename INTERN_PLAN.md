@@ -73,8 +73,8 @@ The API contract (`StorageSvc.h`) is **fixed and not to be changed**. The intern
 **Goal**: Understand the layer cake before touching it.
 
 **Tasks**
-- [ ] Get SDL build running: `./targets/sdl/build.sh && ./build/sdl/featurephone-ui`
-- [ ] Exercise Phonebook + Messages + Settings; observe `/workspace/data/<instance>/` filling up
+- [ ] Install Docker; from `refs/osmocom-demo/osmo-mmi/` run `./osmo-mmi-demo.sh build && ./osmo-mmi-demo.sh run` (or `vnc` if headless). All SDL2/cmake/toolchain deps are inside the container — do NOT install them on host.
+- [ ] Exercise Phonebook + Messages + Settings; observe the bind-mounted `data/<instance>/` directory filling up (this is the container's `/workspace/data/`)
 - [ ] Read `services/storage/StorageSvc.h` — the API contract she'll implement
 - [ ] Read `services/storage/StorageSvc.c` — the SDL reference behaviour
 - [ ] Read `services/CLAUDE.md` — service threading rules
@@ -217,7 +217,7 @@ The API contract (`StorageSvc.h`) is **fixed and not to be changed**. The intern
 **Exit criteria (outcome)**
 - On M1s: add a contact in Phonebook → power cycle → contact still there
 - On M1s: change language in Settings → power cycle → language preserved
-- SDL desktop build still works (no regression for app developers)
+- SDL desktop build still works via `./osmo-mmi-demo.sh build` (no regression for app developers)
 
 **Reporting**: Friday demo — live add-contact / power-cycle / verify on M1s. `STATUS/week7.md`.
 

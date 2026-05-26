@@ -13,12 +13,14 @@ Before changing anything, build a working mental model of:
 
 ## Punch list
 
-### Get the dev environment running
-- [ ] Install SDL2, cmake, build-essential, ninja-build
-- [ ] `cd refs/osmocom-demo/osmo-mmi && ./targets/sdl/build.sh`
-- [ ] Run `./build/sdl/featurephone-ui` — confirm it boots into the UI shell
+### Get the dev environment running (all via Docker — do NOT install SDL2 / cmake on host)
+- [ ] Install Docker + docker-compose on your machine
+- [ ] `cd refs/osmocom-demo/osmo-mmi`
+- [ ] `./osmo-mmi-demo.sh build` — builds the Docker image (Ubuntu 22.04 + SDL2 + toolchain) and compiles the SDL target
+- [ ] `./osmo-mmi-demo.sh run` — launches `featurephone-ui` (X11 forwarded; use `vnc` subcommand if headless)
+- [ ] `./osmo-mmi-demo.sh shell` — opens an interactive shell inside the build container if you need to poke around
 - [ ] Open Phonebook → add a contact; open Messages; change a setting in Settings
-- [ ] Inspect `/workspace/data/<instance>/` — see how POSIX-file storage looks today
+- [ ] Inspect `data/<instance>/` in the osmo-mmi directory (bind-mounted from container's `/workspace/data/`) — see how POSIX-file storage looks today
 
 ### Required reading (in order)
 - [ ] `services/storage/StorageSvc.h` — the API contract you will implement against (227 lines)
@@ -45,7 +47,8 @@ Before changing anything, build a working mental model of:
 - Fill in `STATUS.md` in this folder and commit
 
 ## Tips
-- The "instance" in `/workspace/data/<instance>/` is set by the `SAMPIGE_INSTANCE` env var
+- All builds and runs go through `./osmo-mmi-demo.sh` — do not chase native SDL2 install issues on your host
+- The "instance" in `data/<instance>/` is set by the `SAMPIGE_INSTANCE` env var inside the container
 - LVGL renders inside a UI shell — see the "UI Shell" section of `osmo-mmi/CLAUDE.md`
-- If the SDL build fails on missing fonts/resources, check `How_TO_BUILD.md` in the working tree
+- If you need to peek at build details, `How_TO_BUILD.md` documents the underlying CMake flags
 - The osmo-mmi CLAUDE.md hardware constraints table is your single best reference for the production target
