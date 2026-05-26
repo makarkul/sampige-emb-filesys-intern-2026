@@ -13,10 +13,11 @@ maintainable, and shipping it. **Do not add new features this week.**
 - [ ] `tests/m1s_acceptance.sh`:
   - Boot M1s
   - Add 5 contacts in Phonebook
-  - Send 1 SMS (cached in OUTBOX) + receive 1 SMS (cached in INBOX)
+  - Compose 1 SMS and save as draft (exercises SMS OUTBOX via the RECORD format — no GSM stack required)
   - Change language in Settings
   - Power cycle
-  - Verify: 5 contacts present, 2 SMS present, language preserved
+  - Verify: 5 contacts present, 1 draft SMS present, language preserved
+  - **Note**: SMS-received and call-log persistence use the same storage code paths, so we don't include them in the acceptance — they'd require GSM connectivity for zero extra storage coverage
 - [ ] **FOTA-safety check**:
   - Erase the application region of flash (simulating FOTA write)
   - Reboot with a fresh app

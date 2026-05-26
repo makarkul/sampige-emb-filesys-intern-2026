@@ -230,10 +230,11 @@ The API contract (`StorageSvc.h`) is **fixed and not to be changed**. The intern
 **Tasks**
 - [ ] Run full M1s demo with new storage stack; acceptance script:
   - [ ] Add 5 contacts in Phonebook
-  - [ ] Send/receive an SMS (cached in OUTBOX/INBOX)
+  - [ ] Compose 1 SMS, save as draft (exercises OUTBOX via RECORD storage — no GSM stack required)
   - [ ] Change language in Settings
   - [ ] Power-cycle the board
   - [ ] Verify all three persisted
+  - [ ] (SMS-received and call-log persistence use the same storage paths — excluded from acceptance because they'd require GSM connectivity for zero extra storage coverage)
 - [ ] FOTA-safety test: erase the application region of flash (simulating FOTA write); verify NV partition is intact
 - [ ] Wire up `factory_reset` path: erase NV partition + format on next boot
 - [ ] Final documentation:
